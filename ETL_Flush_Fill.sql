@@ -1,15 +1,7 @@
 --*************************************************************************--
--- Title: Assignment02
 -- Author: <JasonBerney>
--- Desc: This file tests you knowlege on how to create a ETL process with SQL code
 -- Change Log: When,Who,What
 -- 2018-01-17,<JasonBerney>,Created File
-
--- Instructions: 
--- (STEP 1) Create a lite version of the Northwind database by running the provided code.
--- (STEP 2) Create a new Data Warehouse called DWNorthwindLite based on the NorthwindLite DB.
---          The DW should have three dimension tables (for Customers, Products, and Dates) and one fact table.
--- (STEP 3) Fill the DW by creating an ETL Script
 --**************************************************************************--
 USE [DWNorthwindLite];
 go
