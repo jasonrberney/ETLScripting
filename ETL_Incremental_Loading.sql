@@ -293,7 +293,22 @@ Create View vETLFactOrders
 ** 20189-01-17,<JasonBerney>,Created Sproc.
 */
 As
-  SELECT '<Your Code Here>' as TODO
+ SELECT
+     [OrderID] = Orders.OrderID
+    ,[CustomerKey] = DimCustomers.CustomerKey
+    ,[OrderDateKey] = [DimDates].[DateKey]
+    ,[ProductKey] = DimProducts.ProductKey
+    ,[ActualOrderUnitPrice] = CAST([OrderDetails].[UnitPrice] as Decimal(10,2))
+    ,[ActualOrderQuantity] = CAST([OrderDetails].[Quantity] as int)
+	 FROM NorthwindLite.dbo.OrderDetails
+	  INNER JOIN NorthwindLite.dbo.Orders
+		ON OrderDetails.OrderID = Orders.OrderID
+	  INNER JOIN [DWNorthwindLite_withSCD].dbo.DimCustomers
+		ON Orders.CustomerID = DimCustomers.CustomerID
+	  INNER JOIN [DWNorthwindLite_withSCD].dbo.DimDates
+		ON Cast(Convert(nVarchar(50), [Orders].[OrderDate], 112) as int) = Cast(Convert(nVarchar(50), [DimDates].[DateKey], 112) as int)
+	  INNER JOIN [DWNorthwindLite_withSCD].dbo.DimProducts
+		ON DimProducts.ProductID = OrderDetails.ProductID
 go
 /* Testing Code:
  Select * From vETLDimCustomers;
@@ -311,7 +326,27 @@ AS
   Declare @RC int = 0;
   Begin Try
     -- ETL Processing Code --
-   Select '<Your Code Here>' as TODO
+   		MERGE Into FactOrders as TargetTable
+		Using vETLFactOrders as SourceTable
+			ON TargetTable.OrderID = SourceTable.OrderID
+			WHEN NOT MATCHED BY TARGET
+				THEN -- The ID in the Source is not found the the Target
+					INSERT
+					VALUES ( SourceTable.OrderID, SourceTable.CustomerKey, SourceTable.OrderDateKey, SourceTable.ProductKey, SourceTable.ActualOrderUnitPrice, SourceTable.ActualOrderQuantity )
+			WHEN MATCHED -- When the IDs match for the row currently being looked 
+			--AND ( SourceTable.CustomerKey <> TargetTable.CustomerKey -- but the CustomerKey 
+				--OR SourceTable.OrderDateKey <> TargetTable.OrderDateKey ) -- or OrderDateKey do not match...
+				Then 
+					UPDATE -- It knows your target, so you dont specify the FactOrders
+					SET TargetTable.CustomerKey = SourceTable.CustomerKey
+					  , TargetTable.OrderDateKey = SourceTable.OrderDateKey
+					  , TargetTable.ProductKey = SourceTable.ProductKey
+					  , TargetTable.ActualOrderUnitPrice = SourceTable.ActualOrderUnitPrice
+					  , TargetTable.ActualOrderQuantity = SourceTable.ActualOrderQuantity
+			WHEN NOT MATCHED By SOURCE 
+				THEN -- The OrderID is in the Target table, but not the source table
+					DELETE
+		; -- The merge statement demands a semicolon at the end!
    Set @RC = +1
   End Try
   Begin Catch
