@@ -73,26 +73,28 @@ AS
   Begin Try
     -- ETL Processing Code --
     -- 1) For UPDATE: Change the EndDate and IsCurrent on any added rows 
-		With ChangedProducts 
+	With ChangedProducts 
 		As(
 			Select ProductID, ProductName, ProductCategoryID, ProductCategoryName From vETLDimProducts
-			Except
+				Except
 			Select ProductID, ProductName, ProductCategoryID, ProductCategoryName From DimProducts
-       Where IsCurrent = 1 -- Needed if the value is changed back to previous value
-    )UPDATE [DWNorthwindLite_withSCD].dbo.DimProducts 
+				Where IsCurrent = 1 -- Needed if the value is changed back to previous value
+		  )
+	UPDATE [DWNorthwindLite_withSCD].dbo.DimProducts 
       SET EndDate = Cast(Convert(nvarchar(50), GetDate(), 112) as int)
          ,IsCurrent = 0
        WHERE ProductID IN (Select ProductID From ChangedProducts)
     ;
 
     -- 2)For INSERT or UPDATES: Add new rows to the table
-		With AddedORChangedProducts 
+	With AddedORChangedProducts 
 		As(
 			Select ProductID, ProductName, ProductCategoryID, ProductCategoryName From vETLDimProducts
-			Except
+				Except
 			Select ProductID, ProductName, ProductCategoryID, ProductCategoryName From DimProducts
-       Where IsCurrent = 1 -- Needed if the value is changed back to previous value
-		)INSERT INTO [DWNorthwindLite_withSCD].dbo.DimProducts
+				Where IsCurrent = 1 -- Needed if the value is changed back to previous value
+		  )
+	INSERT INTO [DWNorthwindLite_withSCD].dbo.DimProducts
       ([ProductID],[ProductName],[ProductCategoryID],[ProductCategoryName],[StartDate],[EndDate],[IsCurrent])
       SELECT
         [ProductID]
@@ -110,10 +112,11 @@ AS
     With DeletedProducts 
 		As(
 			Select ProductID, ProductName, ProductCategoryID, ProductCategoryName From DimProducts
-       Where IsCurrent = 1 -- We do not care about row already marked zero!
+				Where IsCurrent = 1 -- We do not care about row already marked zero!
  			Except            			
-      Select ProductID, ProductName, ProductCategoryID, ProductCategoryName From vETLDimProducts
-   	)UPDATE [DWNorthwindLite_withSCD].dbo.DimProducts 
+				Select ProductID, ProductName, ProductCategoryID, ProductCategoryName From vETLDimProducts
+   		  )
+	UPDATE [DWNorthwindLite_withSCD].dbo.DimProducts 
       SET EndDate = Cast(Convert(nvarchar(50), GetDate(), 112) as int)
          ,IsCurrent = 0
        WHERE ProductID IN (Select ProductID From DeletedProducts)
@@ -332,7 +335,13 @@ AS
 			WHEN NOT MATCHED BY TARGET
 				THEN -- The ID in the Source is not found the the Target
 					INSERT
-					VALUES ( SourceTable.OrderID, SourceTable.CustomerKey, SourceTable.OrderDateKey, SourceTable.ProductKey, SourceTable.ActualOrderUnitPrice, SourceTable.ActualOrderQuantity )
+					VALUES (	SourceTable.OrderID, 
+								SourceTable.CustomerKey, 
+								SourceTable.OrderDateKey, 
+								SourceTable.ProductKey, 
+								SourceTable.ActualOrderUnitPrice, 
+								SourceTable.ActualOrderQuantity 
+							)
 			WHEN MATCHED -- When the IDs match for the row currently being looked 
 			--AND ( SourceTable.CustomerKey <> TargetTable.CustomerKey -- but the CustomerKey 
 				--OR SourceTable.OrderDateKey <> TargetTable.OrderDateKey ) -- or OrderDateKey do not match...
